@@ -83,38 +83,29 @@ class Solver {
     private fun flash(state: MutableList<MutableList<Int>>, x: Int, y: Int, width: Int, height: Int): Int {
         var flashes = 1
 
-        if (x - 1 >= 0 && y - 1 >= 0) {
-            flashes += increment(state, x - 1, y - 1, width, height)
-        }
-
-        if (y - 1 >= 0) {
-            flashes += increment(state, x, y - 1, width, height)
-        }
-
-        if (x + 1 <= width - 1 && y - 1 >= 0) {
-            flashes += increment(state, x + 1, y - 1, width, height)
-        }
-
-        if (x + 1 <= width - 1) {
-            flashes += increment(state, x + 1, y, width, height)
-        }
-
-        if (x + 1 <= width - 1 && y + 1 <= height - 1) {
-            flashes += increment(state, x + 1, y + 1, width, height)
-        }
-
-        if (y + 1 <= height - 1) {
-            flashes += increment(state, x, y + 1, width, height)
-        }
-
-        if (x - 1 >= 0 && y + 1 <= height - 1) {
-            flashes += increment(state, x - 1, y + 1, width, height)
-        }
-
-        if (x - 1 >= 0) {
-            flashes += increment(state, x - 1, y, width, height)
-        }
+        flashes += propagateFlash(state, x - 1, y - 1, width, height)
+        flashes += propagateFlash(state, x, y - 1, width, height)
+        flashes += propagateFlash(state, x + 1, y - 1, width, height)
+        flashes += propagateFlash(state, x + 1, y, width, height)
+        flashes += propagateFlash(state, x + 1, y + 1, width, height)
+        flashes += propagateFlash(state, x, y + 1, width, height)
+        flashes += propagateFlash(state, x - 1, y + 1, width, height)
+        flashes += propagateFlash(state, x - 1, y, width, height)
 
         return flashes
+    }
+
+    private fun propagateFlash(
+        state: MutableList<MutableList<Int>>,
+        newX: Int,
+        newY: Int,
+        width: Int,
+        height: Int
+    ): Int {
+        if (newX >= 0 && newX <= width - 1 && newY >= 0 && newY <= height - 1) {
+            return increment(state, newX, newY, width, height)
+        }
+
+        return 0
     }
 }
