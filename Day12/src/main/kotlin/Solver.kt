@@ -1,10 +1,49 @@
+typealias Path = List<Pair<String, String>>
+
 class Solver {
     companion object {
         private const val START = "start"
         private const val END = "end"
     }
 
-    fun solvePart1(lines: List<String>): Int {
+    fun solvePart1(lines: List<String>): Int =
+        findNumberOfPaths(lines, false).count()
+
+    fun solvePart2(lines: List<String>): Int {
+        val paths = findNumberOfPaths(lines, true)
+        val pathsWithOnlyOneMultipleSmallCaves = getPathsWithOnlyOneMultipleSmallCaves(paths)
+        return pathsWithOnlyOneMultipleSmallCaves.size
+    }
+
+    private fun getPathsWithOnlyOneMultipleSmallCaves(paths: List<Path>): List<Path> =
+        paths
+            .filter { path ->
+                val occurrences = path
+                    .map {
+                        listOf(it.first, it.second)
+                    }
+                    .flatten()
+
+                val smallCaves =
+                    occurrences
+                        .distinct()
+                        .filter {
+                            it.isSmallCave()
+                        }
+
+                val multipleSmallCavesCount =
+                    smallCaves
+                        .count { smallCave ->
+                            occurrences.filter { it == smallCave }.size > 2
+                        }
+
+                multipleSmallCavesCount <= 1
+            }
+
+    private fun findNumberOfPaths(
+        lines: List<String>,
+        allowSeveralOccurrences: Boolean
+    ): List<Path> {
         val connections =
             lines
                 .map {
@@ -49,19 +88,21 @@ class Solver {
                     (segmentsForward[it] ?: emptyList()) + (segmentsBackward[it] ?: emptyList())
                 }
 
-        val paths: List<List<Pair<String, String>>> = navigate(segments)
+        return navigate(segments, allowSeveralOccurrences)
             .filter { it.isNotEmpty() && it.last().second == END }
-
-        return paths.size
     }
-
-    private fun navigate(segments: Map<String, List<String>>): List<List<Pair<String, String>>> =
-        navigate(segments, emptyList())
 
     private fun navigate(
         segments: Map<String, List<String>>,
-        currentPath: List<Pair<String, String>>
-    ): List<List<Pair<String, String>>> {
+        allowSeveralOccurrences: Boolean
+    ): List<Path> =
+        navigate(segments, allowSeveralOccurrences, emptyList())
+
+    private fun navigate(
+        segments: Map<String, List<String>>,
+        allowSeveralOccurrences: Boolean,
+        currentPath: Path
+    ): List<Path> {
         if (currentPath.isEmpty()) {
             return segments
                 .filterKeys {
@@ -71,7 +112,7 @@ class Solver {
                     entry.value
                         .map { destination ->
                             val path = Pair(entry.key, destination)
-                            navigate(segments, listOf(path))
+                            navigate(segments, allowSeveralOccurrences, listOf(path))
                         }
                         .flatten()
                 }
@@ -86,29 +127,29 @@ class Solver {
 
             val paths = destinations
                 .filter { name ->
-                    val small = name != START && name != END && name.all { char ->
-                        char.code in 97..122
-                    }
+                    val small = name.isSmallCave()
+                    val multipleSmallCavesCount = currentPath.multipleSmallCavesCount()
+                    val occurrences = currentPath.getOccurrences()
+                    val occurrencesOfName = occurrences.count { it == name }
+                    val occurrencesAllowed = if (allowSeveralOccurrences) 4 else 2
 
-                    val occurrences = currentPath
-                        .map {
-                            listOf(it.first, it.second)
-                        }
-                        .flatten()
-
-                    !small || occurrences.count { name == it } < 2
+                    !small || (occurrencesOfName < occurrencesAllowed && multipleSmallCavesCount <= 1)
                 }
                 .map {
                     Pair(currentDestination, it)
                 }
-                .filter {
-                    it !in currentPath
+                .filter { pair ->
+                    if (allowSeveralOccurrences) {
+                        currentPath.count { it == pair } <= 1
+                    } else {
+                        pair !in currentPath
+                    }
                 }
 
             return if (paths.isNotEmpty()) {
                 paths
                     .map {
-                        navigate(segments, currentPath + listOf(it))
+                        navigate(segments, allowSeveralOccurrences, currentPath + listOf(it))
                     }
                     .flatten()
             } else {
@@ -116,4 +157,32 @@ class Solver {
             }
         }
     }
+
+    private fun Path.multipleSmallCavesCount(): Int {
+        val occurrences = getOccurrences()
+
+        val smallCaves =
+            occurrences
+                .distinct()
+                .filter {
+                    it.isSmallCave()
+                }
+
+        return smallCaves
+            .count { smallCave ->
+                occurrences.filter { it == smallCave }.size > 2
+            }
+    }
+
+    private fun Path.getOccurrences(): List<String> =
+        this
+            .map {
+                listOf(it.first, it.second)
+            }
+            .flatten()
+
+    private fun String.isSmallCave(): Boolean =
+        this != START && this != END && this.all { char ->
+            char.code in 97..122
+        }
 }

@@ -75,4 +75,22 @@ class SolverTest {
         val result = solver.solvePart1(example3Lines)
         assertEquals(226, result)
     }
+
+    @Test
+    fun `given example1 then solvePart2() returns correct value`() {
+        val result = solver.solvePart2(example1Lines)
+        assertEquals(36, result)
+    }
+
+    @Test
+    fun `given example2 then solvePart2() returns correct value`() {
+        val result = solver.solvePart2(example2Lines)
+        assertEquals(103, result)
+    }
+
+    @Test
+    fun `given example3 then solvePart2() returns correct value`() {
+        val result = solver.solvePart2(example3Lines)
+        assertEquals(3509, result)
+    }
 }
