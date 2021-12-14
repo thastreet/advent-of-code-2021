@@ -6,18 +6,19 @@ class Solver {
         val instructions = getInstructions(lines)
         val firstInstruction = instructions.first()
 
-        return countDots(fold(grid, firstInstruction))
+        val foldedGrid = grid.fold(firstInstruction)
+
+        return countDots(foldedGrid)
     }
 
     fun solvePart2(lines: List<String>): String {
-        var grid = getGrid(lines)
         val instructions = getInstructions(lines)
 
-        instructions.forEach {
-            grid = fold(grid, it)
+        val foldedGrid = instructions.fold(getGrid(lines)) { acc, instruction ->
+            acc.fold(instruction)
         }
 
-        return grid.print()
+        return foldedGrid.print()
     }
 
     private fun Grid.print(): String {
@@ -34,10 +35,10 @@ class Solver {
         return result
     }
 
-    private fun fold(grid: Grid, instruction: Pair<String, Int>): Grid =
+    private fun Grid.fold(instruction: Pair<String, Int>): Grid =
         when (instruction.first) {
-            "x" -> foldLeft(grid, instruction.second)
-            "y" -> foldUp(grid, instruction.second)
+            "x" -> foldLeft(this, instruction.second)
+            "y" -> foldUp(this, instruction.second)
             else -> throw IllegalArgumentException()
         }
 
