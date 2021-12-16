@@ -36,6 +36,7 @@ private fun doStep(lines: List<String>, rules: Map<String, String>, count: Int):
                 }
 
         result.foldIndexed("") { index, acc, char ->
-            acc + (toInsert.firstOrNull { it.first == index }?.second ?: "") + char
+            val charToInsert: String = toInsert.firstOrNull { it.first == index }?.second.orEmpty()
+            acc + charToInsert + char
         }
     }
