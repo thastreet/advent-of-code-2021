@@ -1,42 +1,19 @@
 import java.io.File
+import java.lang.Math.ceil
+import java.lang.Math.floor
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.sign
 
 fun main(args: Array<String>) {
     val file = File("input.txt")
     val lines = file.readLines()
 
-    val rules: Map<String, String> =
-        lines.drop(2)
-            .associate { line ->
-                val parts = line.split(" -> ")
-                Pair(parts[0], parts[1])
-            }
+    val solver = Solver()
 
-    val result = doStep(lines, rules, 10)
+    val answerPart1 = solver.solvePart1(lines)
+    println("Answer part 1: $answerPart1")
 
-    val mostCommonCount =
-        result
-            .groupBy { it }
-            .maxOf { it.value.size }
-
-    val leastCommonCount =
-        result
-            .groupBy { it }
-            .minOf { it.value.size }
-
-    val part1Result = mostCommonCount - leastCommonCount
-    println("Part 1 result: $part1Result")
+    val answerPart2 = solver.solvePart2(lines)
+    println("Answer part 2: $answerPart2")
 }
-
-private fun doStep(lines: List<String>, rules: Map<String, String>, count: Int): String =
-    (0 until count).fold(lines.first()) { result, _ ->
-        val toInsert =
-            result.windowed(2, 1)
-                .mapIndexed { index, s ->
-                    Pair(index + 1, rules.getValue(s))
-                }
-
-        result.foldIndexed("") { index, acc, char ->
-            val charToInsert: String = toInsert.firstOrNull { it.first == index }?.second.orEmpty()
-            acc + charToInsert + char
-        }
-    }
