@@ -7,6 +7,8 @@ fun main(args: Array<String>) {
     val solver = Solver()
 
     val part1Result = solver.solvePart1(grid)
-
     println("Part 1 result: $part1Result")
+
+    val part2Result = solver.solvePart2(grid)
+    println("Part 2 result: $part2Result")
 }
