@@ -4,8 +4,10 @@ class Solver {
     private var i = 0
 
     fun solvePart1(hexString: String): Int {
+        i = 0
+
         val binaryString = getBinaryString(hexString)
-        val packets = advance(binaryString, Context.None)
+        val packets = forward(binaryString, Context.None)
         val flatten = getSubPackets(packets)
         return flatten.sumOf { it.version }
     }
@@ -22,7 +24,7 @@ class Solver {
             current + getSubPackets(current.map { it.subPackets }.flatten())
         }
 
-    private fun advance(input: String, context: Context): List<Packet> {
+    private fun forward(input: String, context: Context): List<Packet> {
         val packets = mutableListOf<Packet>()
         val start = i
 
@@ -54,11 +56,11 @@ class Solver {
                 if (lengthType == 0) {
                     val totalLength = input.substring(i, i + 15).toInt(2)
                     i += 15
-                    packets.add(Packet(version, type, null, advance(input, Context.TotalLength(totalLength))))
+                    packets.add(Packet(version, type, null, forward(input, Context.TotalLength(totalLength))))
                 } else {
                     val count = input.substring(i, i + 11).toInt(2)
                     i += 11
-                    packets.add(Packet(version, type, null, advance(input, Context.Count(count))))
+                    packets.add(Packet(version, type, null, forward(input, Context.Count(count))))
                 }
             }
 
