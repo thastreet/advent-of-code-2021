@@ -1,49 +1,83 @@
 import java.io.File
 import java.math.BigInteger
 
+var i = 0
+
 fun main(args: Array<String>) {
     val file = File("input.txt")
     val string = file.readText()
 
     val valueWithoutLeadingZeros = BigInteger(string, 16).toString(2)
     val valueWithLeadingZeros = String.format("%" + string.length * 4 + "s", valueWithoutLeadingZeros).replace(" ", "0")
-
-    parsePacket(valueWithLeadingZeros)
+    val list = advance(valueWithLeadingZeros, Context.None)
 }
 
-private fun parsePacket(binaryValue: String) {
-    val versionBinary = binaryValue.take(3)
-    val typeIdBinary = binaryValue.drop(versionBinary.length).take(3)
+fun advance(input: String, context: Context): List<Packet> {
+    val packets = mutableListOf<Packet>()
+    val start = i
 
-    val headerLength = versionBinary.length + typeIdBinary.length
+    while (i < input.length) {
+        val version = input.substring(i, i + 3).toInt(2)
+        i += 3
 
-    val version = versionBinary.toInt(2)
-    val typeId = typeIdBinary.toInt(2)
+        val type = input.substring(i, i + 3).toInt(2)
+        i += 3
 
-    val type = if (typeId == 4) Type.LITERAL else Type.OPERATOR
+        if (type == 4) {
+            var sum = ""
+            var firstOfGroupBin: Char
+            do {
+                firstOfGroupBin = input[i]
+                i++
 
-    when (type) {
-        Type.LITERAL -> {
-            val groups = binaryValue.drop(headerLength).windowed(5, 5, partialWindows = false)
+                val restBin = input.substring(i, i + 4)
+                i += 4
 
-            val result = groups
-                .fold("") { acc, s -> acc + s.drop(1) }
-                .toInt(2)
-        }
-        Type.OPERATOR -> {
-            val lengthTypeId = binaryValue.drop(headerLength).take(1)
-            val lengthType = lengthTypeId.toInt(2)
+                sum += restBin
+            } while (firstOfGroupBin != '0')
+
+            packets.add(Packet(version, type, sum.toInt(2), emptyList()))
+        } else {
+            val lengthType = input[i].toString().toInt(2)
+            i++
 
             if (lengthType == 0) {
-                val totalLengthOfSubPacketsBinary = binaryValue.drop(headerLength + lengthTypeId.length).take(15)
-                val totalLengthOfSubPackets = totalLengthOfSubPacketsBinary.toInt(2)
+                val totalLength = input.substring(i, i + 15).toInt(2)
+                i += 15
+                packets.add(Packet(version, type, null, advance(input, Context.TotalLength(totalLength))))
             } else {
-                val numberOfSubPacketsBinary = binaryValue.drop(headerLength + lengthTypeId.length).take(11)
-                val numberOfSubPackets = numberOfSubPacketsBinary.toInt(2)
+                val count = input.substring(i, i + 11).toInt(2)
+                i += 11
+                packets.add(Packet(version, type, null, advance(input, Context.Count(count))))
             }
         }
+
+        if (context == Context.None || context is Context.Count && packets.size == context.value || context is Context.TotalLength && i - start >= context.value) {
+            break
+        }
     }
+
+    return packets
 }
+
+sealed interface Context {
+    object None : Context
+
+    data class TotalLength(
+        val value: Int
+    ): Context
+
+    data class Count(
+        val value: Int
+    ): Context
+}
+
+data class Packet(
+    val version: Int,
+    val typeId: Int,
+    val value: Int?,
+    val subPackets: List<Packet>
+)
 
 private enum class Type {
     LITERAL,
