@@ -1,118 +1,91 @@
-import java.util.*
+import java.math.BigInteger
 
 class Solver {
-    fun solvePart1(grid: List<List<Int>>): Int =
-        solve(grid)
+    private var i = 0
 
-    fun solvePart2(grid: List<List<Int>>): Int {
-        val width = grid.first().size
-        val height = grid.size
-
-        val growth = 5
-        val maxNumber = 9
-        val newWidth = width * growth
-        val newHeight = height * growth
-
-        val newGrid = MutableList(newHeight) {
-            MutableList(newWidth) {
-                0
-            }
-        }
-
-        for (y in 0 until newHeight) {
-            val heightIncrement = y / height
-
-            for (x in 0 until newWidth) {
-                val widthIncrement = x / width
-                val totalIncrement = widthIncrement + heightIncrement
-
-                val currentNumber = grid[y % height][x % width]
-                val rawNewNumber = currentNumber + totalIncrement
-                val newNumber = if (rawNewNumber > maxNumber) rawNewNumber - maxNumber * (rawNewNumber / maxNumber) else rawNewNumber
-                newGrid[y][x] = newNumber
-            }
-        }
-
-        return solve(newGrid)
+    fun solvePart1(hexString: String): Int {
+        val binaryString = getBinaryString(hexString)
+        val packets = advance(binaryString, Context.None)
+        val flatten = getSubPackets(packets)
+        return flatten.sumOf { it.version }
     }
 
-    private fun solve(grid: List<List<Int>>): Int {
-        val width = grid.first().size
-        val height = grid.size
+    private fun getBinaryString(hexString: String): String {
+        val valueWithoutLeadingZeros = BigInteger(hexString, 16).toString(2)
+        return String.format("%" + hexString.length * 4 + "s", valueWithoutLeadingZeros).replace(" ", "0")
+    }
 
-        val dist = mutableMapOf<Point, Int>()
-        val prev = mutableMapOf<Point, Point>()
-        val nodes = PriorityQueue<Point> { o1, o2 ->
-            dist.getValue(o1).compareTo(dist.getValue(o2))
+    private fun getSubPackets(current: List<Packet>): List<Packet> =
+        if (current.isEmpty()) {
+            current
+        } else {
+            current + getSubPackets(current.map { it.subPackets }.flatten())
         }
 
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val point = Point(x, y)
-                dist[point] = if (x == 0 && y == 0) 0 else Int.MAX_VALUE
-            }
-        }
+    private fun advance(input: String, context: Context): List<Packet> {
+        val packets = mutableListOf<Packet>()
+        val start = i
 
-        nodes.add(Point(0, 0))
+        while (i < input.length) {
+            val version = input.substring(i, i + 3).toInt(2)
+            i += 3
 
-        val destination = Point(width - 1, height - 1)
+            val type = input.substring(i, i + 3).toInt(2)
+            i += 3
 
-        while (nodes.isNotEmpty()) {
-            val current = nodes.remove()
+            if (type == 4) {
+                var sum = ""
+                var firstOfGroupBin: Char
+                do {
+                    firstOfGroupBin = input[i]
+                    i++
 
-            if (current == destination) break
+                    val restBin = input.substring(i, i + 4)
+                    i += 4
 
-            val top: Point? = Point(current.x, current.y - 1).takeIf { it.y >= 0 && dist[it] == Int.MAX_VALUE }
-            val left: Point? = Point(current.x - 1, current.y).takeIf { it.x >= 0 && dist[it] == Int.MAX_VALUE }
-            val right: Point? = Point(current.x + 1, current.y).takeIf { it.x <= width - 1 && dist[it] == Int.MAX_VALUE }
-            val bottom: Point? = Point(current.x, current.y + 1).takeIf { it.y <= height - 1 && dist[it] == Int.MAX_VALUE }
+                    sum += restBin
+                } while (firstOfGroupBin != '0')
 
-            listOfNotNull(top, left, right, bottom).forEach {
-                val newDist = dist.getValue(current) + grid[it.y][it.x]
+                packets.add(Packet(version, type, sum.toBigInteger(2), emptyList()))
+            } else {
+                val lengthType = input[i].toString().toInt(2)
+                i++
 
-                if (newDist < dist.getValue(it)) {
-                    dist[it] = newDist
-                    prev[it] = current
+                if (lengthType == 0) {
+                    val totalLength = input.substring(i, i + 15).toInt(2)
+                    i += 15
+                    packets.add(Packet(version, type, null, advance(input, Context.TotalLength(totalLength))))
+                } else {
+                    val count = input.substring(i, i + 11).toInt(2)
+                    i += 11
+                    packets.add(Packet(version, type, null, advance(input, Context.Count(count))))
                 }
+            }
 
-                nodes.add(it)
+            if (context == Context.None || context is Context.Count && packets.size == context.value || context is Context.TotalLength && i - start >= context.value) {
+                break
             }
         }
 
-        val path = backtrack(prev, width, height)
-
-        return path
-            .drop(1)
-            .sumOf {
-                grid[it.y][it.x]
-            }
+        return packets
     }
 
-    private fun backtrack(prev: Map<Point, Point>, width: Int, height: Int): List<Point> {
-        val origin = Point(0, 0)
+    private sealed interface Context {
+        object None : Context
 
-        val path = mutableListOf<Point>()
-        var current: Point? = Point(width - 1, height - 1)
+        data class TotalLength(
+            val value: Int
+        ): Context
 
-        do {
-            current?.let {
-                path.add(it)
-            }
-
-            val previous = prev[current]?.also {
-                path.add(it)
-            }
-
-            current = prev[previous]
-        } while (current != origin)
-
-        path.add(current)
-
-        return path.reversed()
+        data class Count(
+            val value: Int
+        ): Context
     }
 
-    data class Point(
-        val x: Int,
-        val y: Int
+    private data class Packet(
+        val version: Int,
+        val typeId: Int,
+        val value: BigInteger?,
+        val subPackets: List<Packet>
     )
 }
