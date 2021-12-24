@@ -4,13 +4,32 @@ class Solver {
     private var i = 0
 
     fun solvePart1(hexString: String): Int {
-        i = 0
-
         val binaryString = getBinaryString(hexString)
-        val packets = forward(binaryString, Context.None)
+        val packets = forward(binaryString)
         val flatten = getSubPackets(packets)
         return flatten.sumOf { it.version }
     }
+
+    fun solvePart2(hexString: String): BigInteger {
+        val binaryString = getBinaryString(hexString)
+        val packets = forward(binaryString)
+        return evaluate(packets.first())
+    }
+
+    private fun evaluate(packet: Packet): BigInteger =
+        when (packet.typeId) {
+            0 -> packet.subPackets.sumOf { evaluate(it) }
+            1 -> packet.subPackets.fold(1.toBigInteger()) { acc, subPacket ->
+                acc * evaluate(subPacket)
+            }
+            2 -> packet.subPackets.minOf { evaluate(it) }
+            3 -> packet.subPackets.maxOf { evaluate(it) }
+            4 -> packet.value!!
+            5 -> if (evaluate(packet.subPackets[0]) > evaluate(packet.subPackets[1])) 1.toBigInteger() else 0.toBigInteger()
+            6 -> if (evaluate(packet.subPackets[0]) < evaluate(packet.subPackets[1])) 1.toBigInteger() else 0.toBigInteger()
+            7 -> if (evaluate(packet.subPackets[0]) == evaluate(packet.subPackets[1])) 1.toBigInteger() else 0.toBigInteger()
+            else -> throw IllegalArgumentException()
+        }
 
     private fun getBinaryString(hexString: String): String {
         val valueWithoutLeadingZeros = BigInteger(hexString, 16).toString(2)
@@ -24,7 +43,12 @@ class Solver {
             current + getSubPackets(current.map { it.subPackets }.flatten())
         }
 
-    private fun forward(input: String, context: Context): List<Packet> {
+    private fun forward(input: String): List<Packet> {
+        i = 0
+        return forward(input, Context.None)
+    }
+
+    private fun forward(input: String, context: Context = Context.None): List<Packet> {
         val packets = mutableListOf<Packet>()
         val start = i
 
@@ -77,11 +101,11 @@ class Solver {
 
         data class TotalLength(
             val value: Int
-        ): Context
+        ) : Context
 
         data class Count(
             val value: Int
-        ): Context
+        ) : Context
     }
 
     private data class Packet(
