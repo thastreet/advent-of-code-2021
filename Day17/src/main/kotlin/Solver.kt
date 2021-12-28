@@ -1,7 +1,13 @@
 import kotlin.math.abs
 
 class Solver {
-    fun solvePart1(input: String): Int {
+    fun solvePart1(input: String): Int =
+        getAllInRange(input).maxOf { it.second.highestY }
+
+    fun solvePart2(input: String): Int =
+        getAllInRange(input).size
+
+    private fun getAllInRange(input: String): List<Pair<Pair<Int, Int>, InRangeResult>> {
         val ranges = parseTargetRanges(input)
         val targetXRange = ranges.first
         val targetYRange = ranges.second
@@ -15,12 +21,9 @@ class Solver {
                 }
                 .flatten()
 
-        val inRange =
-            potentialVels
-                .map { isInRange(it, targetXRange, targetYRange) }
-                .filter { it.second.inRange }
-
-        return inRange.maxOf { it.second.highestY }
+        return potentialVels
+            .map { isInRange(it, targetXRange, targetYRange) }
+            .filter { it.second.inRange }
     }
 
     private fun parseTargetRanges(input: String): Pair<IntRange, IntRange> {
@@ -64,7 +67,7 @@ class Solver {
         var xVel = potential.first
         var yVel = potential.second
 
-        while (y >= targetYRange.last) {
+        while (y >= targetYRange.first) {
             x += xVel
             y += yVel
 

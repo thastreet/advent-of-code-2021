@@ -6,8 +6,14 @@ class SolverTest {
     private val solver = Solver()
 
     @Test
-    fun `given example 1 then solvePart1() returns correct value`() {
+    fun `given example then solvePart1() returns correct value`() {
         val result = solver.solvePart1(example)
         assertEquals(45, result)
+    }
+
+    @Test
+    fun `given example then solvePart2() returns correct value`() {
+        val result = solver.solvePart2(example)
+        assertEquals(112, result)
     }
 }
